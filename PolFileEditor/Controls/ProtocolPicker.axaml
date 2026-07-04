@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="using:PolFileEditor.Models"
+             x:Class="PolFileEditor.Controls.ProtocolPicker">
+    <ComboBox x:Name="Combo" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="models:ProtocolOption">
+                <TextBlock Text="{Binding Display}" />
+            </DataTemplate>
+        </ComboBox.ItemTemplate>
+    </ComboBox>
+</UserControl>

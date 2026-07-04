@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="using:PolFileEditor.Models"
+        x:Class="PolFileEditor.Views.ProtocolSearchDialog"
+        x:DataType="models:ProtocolOption"
+        Width="380" Height="480"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Title="Choose IP Protocol">
+    <DockPanel Margin="16">
+        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8"
+                   Text="Search by name or number (e.g. TCP, ospf, 47):" />
+        <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Margin="0,0,0,10"
+                 PlaceholderText="Type to filter…" />
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+            <Button x:Name="OkButton" Content="Select" MinWidth="90" IsDefault="True" />
+            <Button x:Name="CancelButton" Content="Cancel" MinWidth="90" IsCancel="True" />
+        </StackPanel>
+        <ListBox x:Name="ResultsList">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:ProtocolOption">
+                    <TextBlock Text="{Binding Display}" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</Window>

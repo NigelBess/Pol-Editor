@@ -34,9 +34,12 @@ public partial class RuleViewModel : ObservableObject
     public ValidatedField MacDest { get; }
     public ValidatedField IpSource { get; }
     public ValidatedField IpDest { get; }
-    public ValidatedField IpProtocol { get; }
     public ValidatedField PortSource { get; }
     public ValidatedField PortDest { get; }
+
+    /// <summary>Selected IP protocol (chosen from the protocol picker, never invalid).</summary>
+    [ObservableProperty]
+    private ProtocolOption _selectedProtocol = ProtocolCatalog.Unused;
 
     public IReadOnlyList<ValidatedField> Fields { get; }
 
@@ -46,11 +49,10 @@ public partial class RuleViewModel : ObservableObject
         MacDest = new ValidatedField("MAC Dest", Validators.Mac);
         IpSource = new ValidatedField("IP Source", Validators.Cidr);
         IpDest = new ValidatedField("IP Dest", Validators.Cidr);
-        IpProtocol = new ValidatedField("IP Protocol", Validators.Protocol);
         PortSource = new ValidatedField("Port Source", Validators.Port, isNumeric: true);
         PortDest = new ValidatedField("Port Dest", Validators.Port, isNumeric: true);
 
-        Fields = new[] { MacSource, MacDest, IpSource, IpDest, IpProtocol, PortSource, PortDest };
+        Fields = new[] { MacSource, MacDest, IpSource, IpDest, PortSource, PortDest };
         foreach (var field in Fields)
         {
             field.Changed += OnFieldChanged;
@@ -75,7 +77,7 @@ public partial class RuleViewModel : ObservableObject
         get
         {
             var hasPort = !Validators.IsUnused(PortSource.Value) || !Validators.IsUnused(PortDest.Value);
-            var proto = IpProtocol.Value.Trim();
+            var proto = SelectedProtocol?.Value ?? "";
             if (hasPort && proto != "6" && proto != "17")
             {
                 return "A port is specified but the IP protocol is not TCP (6) or UDP (17). "
@@ -94,7 +96,7 @@ public partial class RuleViewModel : ObservableObject
         MacDest = MacDest.Value,
         IpSource = IpSource.Value,
         IpDest = IpDest.Value,
-        IpProtocol = IpProtocol.Value,
+        IpProtocol = SelectedProtocol?.Value ?? "",
         PortSource = PortSource.Value,
         PortDest = PortDest.Value,
         Comment = Comment
@@ -102,12 +104,16 @@ public partial class RuleViewModel : ObservableObject
 
     public static RuleViewModel FromModel(PolRule model)
     {
-        var vm = new RuleViewModel { Action = model.Action, Comment = model.Comment };
+        var vm = new RuleViewModel
+        {
+            Action = model.Action,
+            Comment = model.Comment,
+            SelectedProtocol = ProtocolCatalog.FromValue(model.IpProtocol)
+        };
         vm.MacSource.SetInitial(model.MacSource);
         vm.MacDest.SetInitial(model.MacDest);
         vm.IpSource.SetInitial(model.IpSource);
         vm.IpDest.SetInitial(model.IpDest);
-        vm.IpProtocol.SetInitial(model.IpProtocol);
         vm.PortSource.SetInitial(model.PortSource);
         vm.PortDest.SetInitial(model.PortDest);
         return vm;
@@ -118,6 +124,8 @@ public partial class RuleViewModel : ObservableObject
     partial void OnActionChanged(string value) => RaiseChanged();
 
     partial void OnCommentChanged(string value) => RaiseChanged();
+
+    partial void OnSelectedProtocolChanged(ProtocolOption value) => RaiseChanged();
 
     private void RaiseChanged()
     {
