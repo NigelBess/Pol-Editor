@@ -11,6 +11,7 @@ public partial class MainWindowViewModel : ObservableObject
 {
     private readonly IFileDialogService _dialogs;
     private readonly AppSettings _settings;
+    private readonly NetworkNameResolver _resolver = new();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
@@ -33,6 +34,9 @@ public partial class MainWindowViewModel : ObservableObject
     private string _statusMessage = "Ready.";
 
     public ObservableCollection<TaskViewModel> Tasks { get; } = new();
+
+    /// <summary>User-defined network aliases, edited in the "Known Networks" section.</summary>
+    public ObservableCollection<NamedNetworkViewModel> KnownNetworks { get; } = new();
 
     public string WindowTitle
     {
@@ -95,6 +99,57 @@ public partial class MainWindowViewModel : ObservableObject
         Tasks.Remove(task);
         Renumber();
         MarkDirty();
+    }
+
+    // ---- Known-network commands ---------------------------------------------
+
+    [RelayCommand]
+    private void AddNetwork()
+    {
+        AttachNetwork(new NamedNetworkViewModel());
+        MarkDirty();
+    }
+
+    private void AttachNetwork(NamedNetworkViewModel net)
+    {
+        net.Changed += OnNetworkChanged;
+        net.RemoveRequested += OnNetworkRemoveRequested;
+        KnownNetworks.Add(net);
+    }
+
+    private void DetachNetwork(NamedNetworkViewModel net)
+    {
+        net.Changed -= OnNetworkChanged;
+        net.RemoveRequested -= OnNetworkRemoveRequested;
+    }
+
+    private void OnNetworkChanged(object? sender, EventArgs e)
+    {
+        RefreshNetworks();
+        MarkDirty();
+    }
+
+    private void OnNetworkRemoveRequested(object? sender, EventArgs e)
+    {
+        if (sender is not NamedNetworkViewModel net) return;
+        DetachNetwork(net);
+        KnownNetworks.Remove(net);
+        RefreshNetworks();
+        MarkDirty();
+    }
+
+    /// <summary>Rebuilds the shared resolver from the current aliases and re-renders every
+    /// rule's summary sentence.</summary>
+    private void RefreshNetworks()
+    {
+        _resolver.Networks = KnownNetworks
+            .Select(n => n.ToModel())
+            .Where(n => n.Name.Length > 0 && n.Cidr.Length > 0)
+            .ToList();
+
+        foreach (var task in Tasks)
+        foreach (var rule in task.Rules)
+            rule.RefreshSummary();
     }
 
     // ---- File commands ------------------------------------------------------
@@ -194,7 +249,13 @@ public partial class MainWindowViewModel : ObservableObject
         foreach (var task in Tasks.ToList())
             DetachTask(task);
         Tasks.Clear();
+
+        foreach (var net in KnownNetworks.ToList())
+            DetachNetwork(net);
+        KnownNetworks.Clear();
+
         HeaderText = seedHeader ? PolDocument.DefaultHeader.TrimEnd('\n') : "";
+        RefreshNetworks();
         RecomputeCounts();
     }
 
@@ -202,6 +263,9 @@ public partial class MainWindowViewModel : ObservableObject
     {
         NewDocument(seedHeader: false);
         HeaderText = doc.HeaderText;
+
+        foreach (var net in doc.KnownNetworks)
+            AttachNetwork(NamedNetworkViewModel.FromModel(net));
 
         foreach (var polTask in doc.Tasks)
         {
@@ -211,12 +275,21 @@ public partial class MainWindowViewModel : ObservableObject
                 taskVm.AddRule(RuleViewModel.FromModel(polRule));
         }
 
+        RefreshNetworks();
         Renumber();
     }
 
     private PolDocument BuildModel()
     {
         var doc = new PolDocument { HeaderText = HeaderText };
+
+        foreach (var netVm in KnownNetworks)
+        {
+            var net = netVm.ToModel();
+            if (net.Name.Length > 0 && net.Cidr.Length > 0)
+                doc.KnownNetworks.Add(net);
+        }
+
         foreach (var taskVm in Tasks)
         {
             var polTask = new PolTask { Number = taskVm.Number };
@@ -231,6 +304,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void AttachTask(TaskViewModel task)
     {
+        task.Resolver = _resolver;
         task.StructureChanged += OnTaskStructureChanged;
         task.ContentChanged += OnTaskContentChanged;
         task.RemoveRequested += OnTaskRemoveRequested;

@@ -26,6 +26,9 @@ public static class PolParser
         }
 
         var header = string.Join("\n", lines.Take(bodyStart)).TrimEnd('\n');
+        // Pull the "# Known Networks:" aliases out of the header so they don't show up
+        // in the free-text header UI, then display whatever remains.
+        header = KnownNetworksBlock.Extract(header, doc.KnownNetworks);
         doc.HeaderText = HeaderFormatter.ToDisplay(header);
 
         // 2) Body: task markers create tasks; data rows attach to the task named by the

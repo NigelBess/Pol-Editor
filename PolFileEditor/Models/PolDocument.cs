@@ -17,6 +17,12 @@ public sealed class PolRule
     public string Comment { get; set; } = "";
 }
 
+/// <summary>
+/// A user-defined alias mapping a friendly name to a network in CIDR notation
+/// (e.g. "China" -> "10.0.30.0/24"). Persisted in the file's "# Known Networks:" block.
+/// </summary>
+public sealed record NamedNetwork(string Name, string Cidr);
+
 /// <summary>A group of rules, corresponding to a "# Task N" section in the .pol file.</summary>
 public sealed class PolTask
 {
@@ -31,6 +37,10 @@ public sealed class PolTask
 public sealed class PolDocument
 {
     public string HeaderText { get; set; } = "";
+
+    /// <summary>Named network aliases, stored in the "# Known Networks:" comment block.</summary>
+    public List<NamedNetwork> KnownNetworks { get; } = new();
+
     public List<PolTask> Tasks { get; } = new();
 
     /// <summary>

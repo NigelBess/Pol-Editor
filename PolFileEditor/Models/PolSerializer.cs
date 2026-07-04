@@ -20,6 +20,14 @@ public static class PolSerializer
             sb.Append('\n');
         }
 
+        // The known-network aliases go after the normal header comments, before the tasks.
+        var knownNetworks = KnownNetworksBlock.ToComments(doc.KnownNetworks);
+        if (knownNetworks.Length > 0)
+        {
+            sb.Append(knownNetworks);
+            sb.Append('\n');
+        }
+
         for (var t = 0; t < doc.Tasks.Count; t++)
         {
             // Blank line separating groups (and separating the header from the first task).

@@ -49,6 +49,10 @@ public partial class RuleViewModel : ObservableObject
 
     public IReadOnlyList<ValidatedField> Fields { get; }
 
+    /// <summary>Resolves IPs to friendly names for <see cref="Summary"/>. Set by the owner;
+    /// shared across all rules so edits to the network list reflect everywhere.</summary>
+    public NetworkNameResolver? Resolver { get; set; }
+
     public RuleViewModel()
     {
         MacSource = new ValidatedField("MAC Source", Validators.Mac);
@@ -95,6 +99,13 @@ public partial class RuleViewModel : ObservableObject
 
     public bool HasRuleWarning => RuleWarning != null;
 
+    /// <summary>A plain-English description of this rule, shown in italics under the fields.</summary>
+    public string Summary => RuleDescriber.Describe(ToModel(), Resolver);
+
+    /// <summary>Re-raises <see cref="Summary"/> when something outside the rule changed
+    /// (i.e. the known-networks list).</summary>
+    public void RefreshSummary() => OnPropertyChanged(nameof(Summary));
+
     public PolRule ToModel() => new()
     {
         Action = Action,
@@ -138,6 +149,7 @@ public partial class RuleViewModel : ObservableObject
         OnPropertyChanged(nameof(WorstSeverity));
         OnPropertyChanged(nameof(RuleWarning));
         OnPropertyChanged(nameof(HasRuleWarning));
+        OnPropertyChanged(nameof(Summary));
         Changed?.Invoke(this, EventArgs.Empty);
     }
 }

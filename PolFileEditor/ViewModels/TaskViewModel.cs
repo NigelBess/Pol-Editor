@@ -1,12 +1,17 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PolFileEditor.Models;
 
 namespace PolFileEditor.ViewModels;
 
 /// <summary>A task group: an auto-numbered container of rules.</summary>
 public partial class TaskViewModel : ObservableObject
 {
+    /// <summary>Shared resolver injected by the owner and handed down to each rule so
+    /// their summaries can name known networks.</summary>
+    public NetworkNameResolver? Resolver { get; set; }
+
     /// <summary>Raised when a rule is added/removed or any rule changes (bubbles up).</summary>
     public event EventHandler? StructureChanged;
     public event EventHandler? ContentChanged;
@@ -37,6 +42,7 @@ public partial class TaskViewModel : ObservableObject
 
     private void Attach(RuleViewModel rule)
     {
+        rule.Resolver = Resolver;
         rule.Changed += OnRuleChanged;
         rule.RemoveRequested += OnRuleRemoveRequested;
         rule.DuplicateRequested += OnRuleDuplicateRequested;
