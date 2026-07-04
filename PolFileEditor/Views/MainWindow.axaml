@@ -77,12 +77,14 @@
 
         <!-- One task group. -->
         <DataTemplate DataType="vm:TaskViewModel">
-            <Border BorderBrush="{DynamicResource SystemAccentColor}"
-                    BorderThickness="1" CornerRadius="8" Margin="0,6" Padding="12">
+            <Border BorderBrush="{Binding Number, Converter={StaticResource TaskColor}}"
+                    Background="{Binding Number, Converter={StaticResource TaskColor}, ConverterParameter=fill}"
+                    BorderThickness="2" CornerRadius="8" Margin="0,6" Padding="12">
                 <StackPanel Spacing="8">
                     <Grid ColumnDefinitions="*,Auto,Auto">
                         <TextBlock Grid.Column="0" VerticalAlignment="Center"
                                    FontWeight="Bold" FontSize="16"
+                                   Foreground="{Binding Number, Converter={StaticResource TaskColor}}"
                                    Text="{Binding Title}" />
                         <Button Grid.Column="1" Margin="4,0" Content="Add Rule"
                                 Command="{Binding AddRuleCommand}" />
