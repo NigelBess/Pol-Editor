@@ -48,8 +48,10 @@
                         <ComboBox Grid.Column="2" Width="110" Margin="8,0"
                                   ItemsSource="{Binding ActionOptions}"
                                   SelectedItem="{Binding Action, Mode=TwoWay}" />
-                        <Button Grid.Column="3" Content="Remove"
-                                Command="{Binding RemoveSelfCommand}" />
+                        <Button Grid.Column="3" Command="{Binding RemoveSelfCommand}"
+                                ToolTip.Tip="Delete rule">
+                            <PathIcon Data="{StaticResource TrashIcon}" Width="16" Height="16" />
+                        </Button>
                     </Grid>
 
                     <WrapPanel Orientation="Horizontal">
@@ -81,17 +83,20 @@
                     Background="{Binding Number, Converter={StaticResource TaskColor}, ConverterParameter=fill}"
                     BorderThickness="2" CornerRadius="8" Margin="0,6" Padding="12">
                 <StackPanel Spacing="8">
-                    <Grid ColumnDefinitions="*,Auto,Auto">
+                    <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0" VerticalAlignment="Center"
                                    FontWeight="Bold" FontSize="16"
                                    Foreground="{Binding Number, Converter={StaticResource TaskColor}}"
                                    Text="{Binding Title}" />
-                        <Button Grid.Column="1" Margin="4,0" Content="Add Rule"
-                                Command="{Binding AddRuleCommand}" />
-                        <Button Grid.Column="2" Content="Remove Task"
-                                Command="{Binding RemoveSelfCommand}" />
+                        <Button Grid.Column="1" Command="{Binding RemoveSelfCommand}"
+                                ToolTip.Tip="Delete task">
+                            <PathIcon Data="{StaticResource TrashIcon}" Width="16" Height="16" />
+                        </Button>
                     </Grid>
                     <ItemsControl ItemsSource="{Binding Rules}" />
+                    <Button Content="+" FontSize="18" Padding="12,2"
+                            Command="{Binding AddRuleCommand}"
+                            HorizontalAlignment="Left" ToolTip.Tip="Add rule" />
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -132,8 +137,9 @@
                              MinHeight="140" />
                 </Expander>
                 <ItemsControl ItemsSource="{Binding Tasks}" />
-                <Button Content="+ Add Task" Command="{Binding AddTaskCommand}"
-                        HorizontalAlignment="Left" Margin="0,4,0,0" />
+                <Button Content="+" FontSize="18" Padding="12,2"
+                        Command="{Binding AddTaskCommand}"
+                        HorizontalAlignment="Left" Margin="0,4,0,0" ToolTip.Tip="Add task" />
             </StackPanel>
         </ScrollViewer>
     </DockPanel>
