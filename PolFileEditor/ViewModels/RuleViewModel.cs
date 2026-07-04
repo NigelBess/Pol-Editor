@@ -99,6 +99,15 @@ public partial class RuleViewModel : ObservableObject
 
     public bool HasRuleWarning => RuleWarning != null;
 
+    /// <summary>Number of specified (non-unused) match criteria. A higher count means a
+    /// more specific rule and thus a higher implicit priority.</summary>
+    public int Specificity =>
+        Fields.Count(f => !Validators.IsUnused(f.Value))
+        + (Validators.IsUnused(SelectedProtocol?.Value) ? 0 : 1);
+
+    /// <summary>Badge text, e.g. "Specificity: 3".</summary>
+    public string SpecificityText => $"Specificity: {Specificity}";
+
     /// <summary>A plain-English description of this rule, shown in italics under the fields.</summary>
     public string Summary => RuleDescriber.Describe(ToModel(), Resolver);
 
@@ -149,6 +158,8 @@ public partial class RuleViewModel : ObservableObject
         OnPropertyChanged(nameof(WorstSeverity));
         OnPropertyChanged(nameof(RuleWarning));
         OnPropertyChanged(nameof(HasRuleWarning));
+        OnPropertyChanged(nameof(Specificity));
+        OnPropertyChanged(nameof(SpecificityText));
         OnPropertyChanged(nameof(Summary));
         Changed?.Invoke(this, EventArgs.Empty);
     }
