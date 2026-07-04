@@ -16,8 +16,14 @@ public partial class RuleViewModel : ObservableObject
     /// <summary>Raised when the user clicks this rule's remove button.</summary>
     public event EventHandler? RemoveRequested;
 
+    /// <summary>Raised when the user clicks this rule's duplicate button.</summary>
+    public event EventHandler? DuplicateRequested;
+
     [RelayCommand]
     private void RemoveSelf() => RemoveRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    private void DuplicateSelf() => DuplicateRequested?.Invoke(this, EventArgs.Empty);
 
     [ObservableProperty]
     private string _ruleNumber = "";

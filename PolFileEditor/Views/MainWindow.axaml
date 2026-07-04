@@ -45,9 +45,10 @@
                         <TextBox Grid.Column="1" VerticalAlignment="Center"
                                  Text="{Binding Comment, Mode=TwoWay}"
                                  PlaceholderText="Comment / note" />
-                        <ComboBox Grid.Column="2" Width="110" Margin="8,0"
-                                  ItemsSource="{Binding ActionOptions}"
-                                  SelectedItem="{Binding Action, Mode=TwoWay}" />
+                        <Button Grid.Column="2" Margin="0,0,4,0" Command="{Binding DuplicateSelfCommand}"
+                                ToolTip.Tip="Duplicate rule">
+                            <PathIcon Data="{StaticResource CopyIcon}" Width="16" Height="16" />
+                        </Button>
                         <Button Grid.Column="3" Command="{Binding RemoveSelfCommand}"
                                 ToolTip.Tip="Delete rule">
                             <PathIcon Data="{StaticResource TrashIcon}" Width="16" Height="16" />
@@ -55,6 +56,12 @@
                     </Grid>
 
                     <WrapPanel Orientation="Horizontal">
+                        <StackPanel Width="150" Margin="4,2" Spacing="2">
+                            <TextBlock Text="Action" FontSize="11" Opacity="0.75" />
+                            <ComboBox HorizontalAlignment="Stretch"
+                                      ItemsSource="{Binding ActionOptions}"
+                                      SelectedItem="{Binding Action, Mode=TwoWay}" />
+                        </StackPanel>
                         <ContentControl Content="{Binding MacSource}" />
                         <ContentControl Content="{Binding MacDest}" />
                         <ContentControl Content="{Binding IpSource}" />

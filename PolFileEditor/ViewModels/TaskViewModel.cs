@@ -30,10 +30,23 @@ public partial class TaskViewModel : ObservableObject
 
     public void AddRule(RuleViewModel rule)
     {
-        rule.Changed += OnRuleChanged;
-        rule.RemoveRequested += OnRuleRemoveRequested;
+        Attach(rule);
         Rules.Add(rule);
         StructureChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void Attach(RuleViewModel rule)
+    {
+        rule.Changed += OnRuleChanged;
+        rule.RemoveRequested += OnRuleRemoveRequested;
+        rule.DuplicateRequested += OnRuleDuplicateRequested;
+    }
+
+    private void Detach(RuleViewModel rule)
+    {
+        rule.Changed -= OnRuleChanged;
+        rule.RemoveRequested -= OnRuleRemoveRequested;
+        rule.DuplicateRequested -= OnRuleDuplicateRequested;
     }
 
     private void OnRuleRemoveRequested(object? sender, EventArgs e)
@@ -41,10 +54,19 @@ public partial class TaskViewModel : ObservableObject
         if (sender is RuleViewModel rule) RemoveRule(rule);
     }
 
+    private void OnRuleDuplicateRequested(object? sender, EventArgs e)
+    {
+        if (sender is not RuleViewModel rule) return;
+
+        var clone = RuleViewModel.FromModel(rule.ToModel());
+        Attach(clone);
+        Rules.Insert(Rules.IndexOf(rule) + 1, clone);
+        StructureChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void RemoveRule(RuleViewModel rule)
     {
-        rule.Changed -= OnRuleChanged;
-        rule.RemoveRequested -= OnRuleRemoveRequested;
+        Detach(rule);
         Rules.Remove(rule);
         StructureChanged?.Invoke(this, EventArgs.Empty);
     }
