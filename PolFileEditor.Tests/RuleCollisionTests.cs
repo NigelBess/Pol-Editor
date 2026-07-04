@@ -163,6 +163,99 @@ public class RuleCollisionTests
         Assert.Equal(CollisionReason.AllowTrumpsBlock, c.Reason);
     }
 
+    // ---- Containment: an override needs one match set to bound the other ----
+
+    [Fact]
+    public void Contains_requires_every_outer_field_to_bound_the_inner()
+    {
+        var outer = Rule("Block", ipDst: "10.0.0.0/16");
+        var inner = Rule("Block", ipDst: "10.0.1.0/24", proto: "6");
+
+        // inner's packets are a strict subset of outer's -> outer contains inner.
+        Assert.True(RuleCollisionDetector.Contains(outer, inner));
+        Assert.False(RuleCollisionDetector.Contains(inner, outer));
+    }
+
+    [Fact]
+    public void Contains_is_false_when_neither_set_bounds_the_other()
+    {
+        // Task 1: block outgoing TCP from cn4.   Task 2: isolate cn5 (block traffic to it).
+        var fromCn4 = Rule("Block", ipSrc: "10.0.30.4/32", proto: "6");
+        var toCn5   = Rule("Block", ipDst: "10.0.30.5/32");
+
+        Assert.False(RuleCollisionDetector.Contains(fromCn4, toCn5));
+        Assert.False(RuleCollisionDetector.Contains(toCn5, fromCn4));
+    }
+
+    // ---- The reported bug: unrelated same-action rules must not override ----
+
+    [Fact]
+    public void Same_action_partial_overlap_without_containment_is_not_an_override()
+    {
+        // "Block outgoing TCP from cn4" (source + proto) and "Block incoming to cn5" (dest)
+        // only co-apply to the single cn4 -> cn5 TCP flow. Neither rule's match set contains
+        // the other's and both Block, so there is no override between them.
+        var fromCn4 = Rule("Block", ipSrc: "10.0.30.4/32", proto: "6");   // Task 1
+        var toCn5   = Rule("Block", ipDst: "10.0.30.5/32");               // Task 2
+
+        // They do share packets (a cn4 -> cn5 TCP packet matches both)...
+        Assert.True(RuleCollisionDetector.Overlaps(fromCn4, toCn5));
+        // ...but that partial overlap is not a collision.
+        Assert.False(RuleCollisionDetector.Collides(fromCn4, toCn5));
+
+        var rules = new[] { ("1.1", fromCn4), ("2.1", toCn5) };
+        Assert.Empty(RuleCollisionDetector.Detect(rules));
+    }
+
+    [Fact]
+    public void Opposite_action_partial_overlap_is_not_an_override()
+    {
+        // "Allow ICMP to HQ" and "Block outgoing from cn5" only co-apply to cn5 -> HQ ICMP.
+        // The Allow is NOT an exception carved out of that Block (it isn't contained in it),
+        // so per "Allow rules override a previously more BROAD Block rule" there is no override.
+        var allowIcmpToHq = Rule("Allow", ipDst: "10.0.0.0/24", proto: "1");  // Task 3
+        var blockFromCn5  = Rule("Block", ipSrc: "10.0.30.5/32");             // Task 2
+
+        Assert.True(RuleCollisionDetector.Overlaps(allowIcmpToHq, blockFromCn5)); // share packets
+        Assert.False(RuleCollisionDetector.Collides(allowIcmpToHq, blockFromCn5)); // but no override
+
+        var rules = new[] { ("1.0", allowIcmpToHq), ("2.0", blockFromCn5) };
+        Assert.Empty(RuleCollisionDetector.Detect(rules));
+    }
+
+    [Fact]
+    public void Allow_carved_out_of_a_broader_block_is_a_real_override()
+    {
+        // "Allow ICMP to HQ" IS contained in "Block all ICMP" -> it carves HQ out of the
+        // blanket block, exactly the intended Allow-overrides-broad-Block relationship.
+        var allowIcmpToHq = Rule("Allow", ipDst: "10.0.0.0/24", proto: "1");  // Task 3
+        var blockAllIcmp  = Rule("Block", proto: "1");                        // broad ICMP block
+
+        Assert.True(RuleCollisionDetector.Collides(allowIcmpToHq, blockAllIcmp));
+
+        var rules = new[] { ("1.0", allowIcmpToHq), ("3.5", blockAllIcmp) };
+        var c = Assert.Single(RuleCollisionDetector.Detect(rules));
+        Assert.Equal("1.0", c.Winner);
+        Assert.Equal("3.5", c.Loser);
+        Assert.Equal(CollisionReason.AllowTrumpsBlock, c.Reason);
+    }
+
+    [Fact]
+    public void Nested_cidrs_of_equal_field_count_still_override()
+    {
+        // Both specify exactly one field, so the crude field-count "specificity" calls them
+        // equal -- yet /24 is strictly inside /16, a real shadow that must be reported.
+        var broad  = Rule("Block", ipDst: "10.0.0.0/16");    // specificity 1
+        var narrow = Rule("Block", ipDst: "10.0.1.0/24");    // specificity 1
+
+        Assert.True(RuleCollisionDetector.Collides(broad, narrow));
+
+        var c = Assert.Single(RuleCollisionDetector.Detect(new[] { ("broad", broad), ("narrow", narrow) }));
+        Assert.Equal("narrow", c.Winner);
+        Assert.Equal("broad", c.Loser);
+        Assert.Equal(CollisionReason.Specificity, c.Reason);
+    }
+
     [Fact]
     public void Independent_rules_produce_no_collisions()
     {

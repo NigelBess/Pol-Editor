@@ -32,12 +32,17 @@ public sealed record Collision<T>(T Winner, T Loser, CollisionReason Reason, int
 ///
 /// Two rules <em>overlap</em> when, for every match field, their specified values are
 /// compatible (an unused field matches anything; two specified values must intersect).
-/// An overlap is only a <em>collision</em> when the two actions differ — two Allows (or
-/// two Blocks) reach the same verdict, so nothing is overridden.
 ///
-/// Precedence: "Allow overrides Block" is absolute here, so in any collision the Allow
-/// rule wins and the Block rule is overridden. (Specificity orders rules of the same
-/// action and therefore never changes a collision's outcome.)
+/// A collision (override) requires one rule's match set to be <em>contained</em> in the
+/// other's — a mere partial overlap where neither side bounds the other (e.g. "Allow ICMP to
+/// HQ" vs "Block from cn5", which only share cn5→HQ ICMP) is two independent rules, not an
+/// override. Given containment:
+/// <list type="bullet">
+/// <item>Opposite verdicts: the Allow overrides the broader (or equal) Block and wins —
+/// this is "Allow rules override a previously more broad Block rule".</item>
+/// <item>The same verdict: the narrower (contained) rule is a shadow/carve-out of the broader
+/// one and wins on specificity. Two identical sets are a duplicate, not an override.</item>
+/// </list>
 /// </summary>
 public static partial class RuleCollisionDetector
 {
@@ -59,38 +64,49 @@ public static partial class RuleCollisionDetector
             var (aHandle, a) = rules[i];
             var (bHandle, b) = rules[j];
 
-            if (!Overlaps(a, b))
+            // An override needs one rule's match set to be contained in the other's. A mere
+            // partial overlap where neither side bounds the other (e.g. "Allow ICMP to HQ" vs
+            // "Block from cn5") is two independent rules that happen to share some packets —
+            // the Allow is not an exception carved out of that Block, so it overrides nothing.
+            var aInsideB = Contains(b, a); // a's packets ⊆ b's packets
+            var bInsideA = Contains(a, b); // b's packets ⊆ a's packets
+            if (!aInsideB && !bInsideA)
                 continue;
 
             if (IsAllow(a) != IsAllow(b))
             {
-                // Different verdicts: Allow always wins, whatever the specificity.
+                // Opposite verdicts with containment: the Allow overrides a broader (or equal)
+                // Block, per "Allow rules override a previously more broad Block rule".
                 var (winner, loser, winnerRule) = IsAllow(a) ? (aHandle, bHandle, a) : (bHandle, aHandle, b);
                 collisions.Add(new Collision<T>(winner, loser, CollisionReason.AllowTrumpsBlock, Specificity(winnerRule)));
             }
             else
             {
-                // Same verdict: the more specific rule wins. Equal specificity is a true
-                // duplicate/tie with no precedence, so it isn't reported as an override.
-                var sa = Specificity(a);
-                var sb = Specificity(b);
-                if (sa == sb)
+                // Same verdict: the narrower (contained) rule is a carve-out of the broader one
+                // and wins on specificity. Two identical sets are a duplicate, not an override.
+                if (aInsideB == bInsideA)
                     continue;
 
-                var (winner, loser, winnerSpecificity) = sa > sb ? (aHandle, bHandle, sa) : (bHandle, aHandle, sb);
-                collisions.Add(new Collision<T>(winner, loser, CollisionReason.Specificity, winnerSpecificity));
+                var (winner, loser, winnerRule) = aInsideB ? (aHandle, bHandle, a) : (bHandle, aHandle, b);
+                collisions.Add(new Collision<T>(winner, loser, CollisionReason.Specificity, Specificity(winnerRule)));
             }
         }
         return collisions;
     }
 
-    /// <summary>True when two overlapping rules establish a precedence: either they disagree
-    /// on the verdict (Allow beats Block) or they agree but differ in specificity.</summary>
+    /// <summary>True when two rules establish a precedence. In every case one rule's match set
+    /// must be contained in the other's — a mere partial overlap where neither bounds the other
+    /// is two independent rules, not an override. With opposite verdicts any containment (the
+    /// Allow carving out of, or shadowing, the Block) is a collision; with the same verdict only
+    /// strict containment is (identical sets are a duplicate, not an override).</summary>
     public static bool Collides(PolRule a, PolRule b)
     {
-        if (!Overlaps(a, b))
+        var aInsideB = Contains(b, a);
+        var bInsideA = Contains(a, b);
+        if (!aInsideB && !bInsideA)
             return false;
-        return IsAllow(a) != IsAllow(b) || Specificity(a) != Specificity(b);
+
+        return IsAllow(a) != IsAllow(b) || aInsideB != bInsideA;
     }
 
     /// <summary>Number of specified (non-unused) match criteria — the rule's specificity.
@@ -120,6 +136,23 @@ public static partial class RuleCollisionDetector
         && PortMatch(a.PortDest, b.PortDest)
         && CidrMatch(a.IpSource, b.IpSource)
         && CidrMatch(a.IpDest, b.IpDest);
+
+    /// <summary>
+    /// True when every packet matched by <paramref name="inner"/> is also matched by
+    /// <paramref name="outer"/> — i.e. <paramref name="inner"/>'s match set is a subset of
+    /// <paramref name="outer"/>'s. This holds when, for every field <paramref name="outer"/>
+    /// constrains, <paramref name="inner"/> constrains the same field to a value inside it
+    /// (an unused field on <paramref name="outer"/> imposes nothing). Containment — not mere
+    /// overlap — is what makes a narrower rule a shadow/carve-out of a broader one.
+    /// </summary>
+    public static bool Contains(PolRule outer, PolRule inner)
+        => ExactContains(outer.MacSource, inner.MacSource)
+        && ExactContains(outer.MacDest, inner.MacDest)
+        && ExactContains(outer.IpProtocol, inner.IpProtocol)
+        && PortContains(outer.PortSource, inner.PortSource)
+        && PortContains(outer.PortDest, inner.PortDest)
+        && CidrContains(outer.IpSource, inner.IpSource)
+        && CidrContains(outer.IpDest, inner.IpDest);
 
     private static bool IsAllow(PolRule rule)
         => string.Equals(rule.Action?.Trim(), "Allow", StringComparison.OrdinalIgnoreCase);
@@ -159,6 +192,50 @@ public static partial class RuleCollisionDetector
 
         var mask = MaskFor(Math.Min(prefixX, prefixY));
         return (addrX & mask) == (addrY & mask);
+    }
+
+    /// <summary>An exact field bounds the inner one when the outer is unused (bounds nothing)
+    /// or both are specified and equal.</summary>
+    private static bool ExactContains(string? outer, string? inner)
+    {
+        if (Validators.IsUnused(outer))
+            return true;
+        if (Validators.IsUnused(inner))
+            return false;
+        return string.Equals(outer!.Trim(), inner!.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>A port bounds the inner one when the outer is unused, or both parse to the same
+    /// number (falls back to text equality for values that don't parse).</summary>
+    private static bool PortContains(string? outer, string? inner)
+    {
+        if (Validators.IsUnused(outer))
+            return true;
+        if (Validators.IsUnused(inner))
+            return false;
+        if (int.TryParse(outer!.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var po)
+            && int.TryParse(inner!.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var pi))
+            return po == pi;
+        return string.Equals(outer!.Trim(), inner!.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>A CIDR block bounds the inner one when the outer is unused, or the inner block
+    /// is nested within it — the inner mask is at least as long (narrower) and their network
+    /// portions agree under the outer's (broader) mask. An unparseable value bounds nothing.</summary>
+    private static bool CidrContains(string? outer, string? inner)
+    {
+        if (Validators.IsUnused(outer))
+            return true;
+        if (Validators.IsUnused(inner))
+            return false;
+        if (!TryParse(outer, out var addrOuter, out var prefixOuter)
+            || !TryParse(inner, out var addrInner, out var prefixInner))
+            return false;
+        if (prefixInner < prefixOuter)
+            return false; // inner is broader than outer -> not contained
+
+        var mask = MaskFor(prefixOuter);
+        return (addrOuter & mask) == (addrInner & mask);
     }
 
     private static bool TryParse(string? cidr, out uint address, out int prefix)
