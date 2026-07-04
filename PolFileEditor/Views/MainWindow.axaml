@@ -166,10 +166,10 @@
                 <Expander Header="Known networks (name your subnets for readable rule descriptions)">
                     <StackPanel Spacing="4">
                         <ItemsControl ItemsSource="{Binding KnownNetworks}" />
-                        <Button Content="+ Add network" Padding="12,2"
+                        <Button Content="+" FontSize="18" Padding="12,2"
                                 Command="{Binding AddNetworkCommand}"
                                 HorizontalAlignment="Left" Margin="0,4,0,0"
-                                ToolTip.Tip="Add named network" />
+                                ToolTip.Tip="Add network" />
                     </StackPanel>
                 </Expander>
                 <ItemsControl ItemsSource="{Binding Tasks}" />
