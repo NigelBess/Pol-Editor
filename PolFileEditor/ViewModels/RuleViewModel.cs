@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PolFileEditor.Models;
@@ -52,6 +53,21 @@ public partial class RuleViewModel : ObservableObject
     /// <summary>Resolves IPs to friendly names for <see cref="Summary"/>. Set by the owner;
     /// shared across all rules so edits to the network list reflect everywhere.</summary>
     public NetworkNameResolver? Resolver { get; set; }
+
+    private ObservableCollection<NamedNetwork>? _knownNetworks;
+
+    /// <summary>The shared known-network list, handed down by the owner and offered as
+    /// one-click fills on the IP Source/Dest fields.</summary>
+    public ObservableCollection<NamedNetwork>? KnownNetworks
+    {
+        get => _knownNetworks;
+        set
+        {
+            _knownNetworks = value;
+            IpSource.QuickPicks = value;
+            IpDest.QuickPicks = value;
+        }
+    }
 
     public RuleViewModel()
     {

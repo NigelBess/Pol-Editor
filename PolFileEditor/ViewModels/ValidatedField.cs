@@ -1,4 +1,6 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using PolFileEditor.Models;
 
 namespace PolFileEditor.ViewModels;
@@ -8,7 +10,7 @@ namespace PolFileEditor.ViewModels;
 /// The view binds <see cref="Value"/> to a TextBox and colors it by <see cref="Severity"/>,
 /// showing <see cref="Message"/> as the explanation. Numeric fields reject non-digit input.
 /// </summary>
-public sealed class ValidatedField : ObservableObject
+public sealed partial class ValidatedField : ObservableObject
 {
     private readonly Func<string, ValidationResult> _validator;
     private string _value = "";
@@ -63,4 +65,35 @@ public sealed class ValidatedField : ObservableObject
     /// <summary>Sets the value without any change notification bookkeeping side effects
     /// beyond the normal ones (used when loading a document).</summary>
     public void SetInitial(string value) => Value = value ?? "";
+
+    // ---- Known-network quick fill -------------------------------------------
+    // Set (once, by the owner) on IP fields only; the view shows a "known networks"
+    // dropdown that fills this field's value with a chosen network's CIDR. Left null
+    // on the MAC/port fields, where it makes no sense.
+
+    private ObservableCollection<NamedNetwork>? _quickPicks;
+
+    /// <summary>The named networks offered as one-click fills, or null if this field has none.
+    /// A shared, live collection: additions/edits in the "Known networks" section appear here.</summary>
+    public ObservableCollection<NamedNetwork>? QuickPicks
+    {
+        get => _quickPicks;
+        set
+        {
+            _quickPicks = value;
+            OnPropertyChanged(nameof(QuickPicks));
+            OnPropertyChanged(nameof(HasQuickPicks));
+        }
+    }
+
+    /// <summary>True when this field offers known-network quick fills (IP fields only).</summary>
+    public bool HasQuickPicks => _quickPicks is not null;
+
+    /// <summary>Fills this field with a known network's CIDR.</summary>
+    [RelayCommand]
+    private void ApplyQuickPick(NamedNetwork? net)
+    {
+        if (net is not null)
+            Value = net.Cidr;
+    }
 }

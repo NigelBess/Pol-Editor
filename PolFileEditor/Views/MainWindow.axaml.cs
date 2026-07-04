@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using PolFileEditor.Services;
@@ -68,5 +70,16 @@ public partial class MainWindow : Window, IFileDialogService
     {
         _forceClose = true;
         Close();
+    }
+
+    /// <summary>Dismisses the "known networks" dropdown once a network has been picked (the
+    /// bound command has already filled the field). The flyout is otherwise light-dismiss only.</summary>
+    private void OnQuickPickClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control c &&
+            c.FindLogicalAncestorOfType<DropDownButton>() is { Flyout: { } flyout })
+        {
+            flyout.Hide();
+        }
     }
 }

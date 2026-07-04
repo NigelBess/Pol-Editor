@@ -13,6 +13,10 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly AppSettings _settings;
     private readonly NetworkNameResolver _resolver = new();
 
+    /// <summary>The valid, named subnets offered as one-click fills on every rule's IP fields.
+    /// A single shared instance; kept in sync with the edited aliases by <see cref="RefreshNetworks"/>.</summary>
+    private readonly ObservableCollection<NamedNetwork> _networkPicks = new();
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
     private string? _currentPath;
@@ -146,10 +150,17 @@ public partial class MainWindowViewModel : ObservableObject
     /// rule's summary sentence.</summary>
     private void RefreshNetworks()
     {
-        _resolver.Networks = KnownNetworks
+        var nets = KnownNetworks
             .Select(n => n.ToModel())
             .Where(n => n.Name.Length > 0 && n.Cidr.Length > 0)
             .ToList();
+
+        _resolver.Networks = nets;
+
+        // Mutate the shared pick list in place so the IP-field dropdowns update live.
+        _networkPicks.Clear();
+        foreach (var net in nets)
+            _networkPicks.Add(net);
 
         foreach (var task in Tasks)
         foreach (var rule in task.Rules)
@@ -310,6 +321,7 @@ public partial class MainWindowViewModel : ObservableObject
     private void AttachTask(TaskViewModel task)
     {
         task.Resolver = _resolver;
+        task.KnownNetworks = _networkPicks;
         task.StructureChanged += OnTaskStructureChanged;
         task.ContentChanged += OnTaskContentChanged;
         task.RemoveRequested += OnTaskRemoveRequested;

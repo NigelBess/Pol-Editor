@@ -12,6 +12,10 @@ public partial class TaskViewModel : ObservableObject
     /// their summaries can name known networks.</summary>
     public NetworkNameResolver? Resolver { get; set; }
 
+    /// <summary>Shared known-network list injected by the owner and handed down to each rule
+    /// so the IP fields can offer them as quick fills.</summary>
+    public ObservableCollection<NamedNetwork>? KnownNetworks { get; set; }
+
     /// <summary>Raised when a rule is added/removed or any rule changes (bubbles up).</summary>
     public event EventHandler? StructureChanged;
     public event EventHandler? ContentChanged;
@@ -43,6 +47,7 @@ public partial class TaskViewModel : ObservableObject
     private void Attach(RuleViewModel rule)
     {
         rule.Resolver = Resolver;
+        rule.KnownNetworks = KnownNetworks;
         rule.Changed += OnRuleChanged;
         rule.RemoveRequested += OnRuleRemoveRequested;
         rule.DuplicateRequested += OnRuleDuplicateRequested;

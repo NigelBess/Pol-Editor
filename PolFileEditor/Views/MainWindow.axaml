@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:PolFileEditor.ViewModels"
+        xmlns:models="using:PolFileEditor.Models"
         xmlns:controls="using:PolFileEditor.Controls"
         x:Class="PolFileEditor.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -17,10 +18,46 @@
 
     <Window.DataTemplates>
 
-        <!-- A single validated field: label, colored input, and explanation. -->
+        <!-- A single validated field: label, colored input, and explanation.
+             IP fields (HasQuickPicks) also get a "known networks" dropdown on the label row. -->
         <DataTemplate DataType="vm:ValidatedField">
             <StackPanel Width="150" Margin="4,2" Spacing="2">
-                <SelectableTextBlock Text="{Binding Label}" FontSize="11" Opacity="0.75" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center"
+                               Text="{Binding Label}" FontSize="11" Opacity="0.75" />
+                    <DropDownButton Grid.Column="1" IsVisible="{Binding HasQuickPicks}"
+                                    Padding="4,0" MinHeight="20" FontSize="11"
+                                    ToolTip.Tip="Fill from a known network">
+                        <PathIcon Data="{StaticResource NetworkIcon}" Width="12" Height="12" />
+                        <DropDownButton.Flyout>
+                            <Flyout Placement="Bottom">
+                                <StackPanel MinWidth="180" MaxWidth="260">
+                                    <SelectableTextBlock
+                                        Text="No known networks yet. Add them in the &quot;Known networks&quot; section above."
+                                        IsVisible="{Binding !QuickPicks.Count}"
+                                        TextWrapping="Wrap" FontSize="11" Opacity="0.7" Margin="8,6" />
+                                    <ItemsControl ItemsSource="{Binding QuickPicks}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="models:NamedNetwork">
+                                                <Button HorizontalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Left"
+                                                        Background="Transparent" Padding="10,6"
+                                                        Click="OnQuickPickClicked"
+                                                        Command="{Binding $parent[ItemsControl].((vm:ValidatedField)DataContext).ApplyQuickPickCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <StackPanel Spacing="1">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                                        <TextBlock Text="{Binding Cidr}" FontSize="11" Opacity="0.7" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Flyout>
+                        </DropDownButton.Flyout>
+                    </DropDownButton>
+                </Grid>
                 <Border BorderBrush="{Binding Severity, Converter={StaticResource SeverityToBrush}}"
                         BorderThickness="2" CornerRadius="5">
                     <TextBox Text="{Binding Value, Mode=TwoWay}"
