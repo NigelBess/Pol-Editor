@@ -39,17 +39,35 @@
                                     <ItemsControl ItemsSource="{Binding QuickPicks}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="models:NamedNetwork">
-                                                <Button HorizontalAlignment="Stretch"
-                                                        HorizontalContentAlignment="Left"
-                                                        Background="Transparent" Padding="10,6"
-                                                        Click="OnQuickPickClicked"
-                                                        Command="{Binding $parent[ItemsControl].((vm:ValidatedField)DataContext).ApplyQuickPickCommand}"
-                                                        CommandParameter="{Binding}">
-                                                    <StackPanel Spacing="1">
-                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                                        <TextBlock Text="{Binding Cidr}" FontSize="11" Opacity="0.7" />
-                                                    </StackPanel>
-                                                </Button>
+                                                <StackPanel>
+                                                    <!-- Fill with the whole network. -->
+                                                    <Button HorizontalAlignment="Stretch"
+                                                            HorizontalContentAlignment="Left"
+                                                            Background="Transparent" Padding="10,6"
+                                                            Click="OnQuickPickClicked">
+                                                        <StackPanel Spacing="1">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding Cidr}" FontSize="11" Opacity="0.7" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <!-- Specific hosts of this network, indented beneath it. -->
+                                                    <ItemsControl ItemsSource="{Binding Hosts}" Margin="16,0,0,0">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate DataType="models:NamedHost">
+                                                                <Button HorizontalAlignment="Stretch"
+                                                                        HorizontalContentAlignment="Left"
+                                                                        Background="Transparent" Padding="10,4"
+                                                                        Click="OnQuickPickClicked">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                        <TextBlock Text="{Binding Name}" FontSize="12"
+                                                                                   IsVisible="{Binding !!Name.Length}" />
+                                                                        <TextBlock Text="{Binding Ip}" FontSize="11" Opacity="0.7" />
+                                                                    </StackPanel>
+                                                                </Button>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
@@ -70,20 +88,47 @@
             </StackPanel>
         </DataTemplate>
 
-        <!-- One named-network alias row. -->
-        <DataTemplate DataType="vm:NamedNetworkViewModel">
-            <Grid ColumnDefinitions="200,Auto,Auto" Margin="0,2">
+        <!-- One host defined inside a network. -->
+        <DataTemplate DataType="vm:HostViewModel">
+            <Grid ColumnDefinitions="160,Auto,Auto,Auto" Margin="24,2,0,2">
                 <StackPanel Grid.Column="0" Margin="4,2" Spacing="2">
-                    <SelectableTextBlock Text="Name" FontSize="11" Opacity="0.75" />
+                    <SelectableTextBlock Text="Host name" FontSize="11" Opacity="0.75" />
                     <TextBox Text="{Binding Name, Mode=TwoWay}"
-                             PlaceholderText="e.g. China" />
+                             PlaceholderText="e.g. WebServer" />
                 </StackPanel>
-                <ContentControl Grid.Column="1" Content="{Binding Cidr}" />
+                <ContentControl Grid.Column="1" Content="{Binding Ip}" />
                 <Button Grid.Column="2" VerticalAlignment="Top" Margin="4,18,0,0"
-                        Command="{Binding RemoveSelfCommand}" ToolTip.Tip="Delete network">
+                        Command="{Binding DuplicateSelfCommand}" ToolTip.Tip="Duplicate host">
+                    <PathIcon Data="{StaticResource CopyIcon}" Width="16" Height="16" />
+                </Button>
+                <Button Grid.Column="3" VerticalAlignment="Top" Margin="4,18,0,0"
+                        Command="{Binding RemoveSelfCommand}" ToolTip.Tip="Delete host">
                     <PathIcon Data="{StaticResource TrashIcon}" Width="16" Height="16" />
                 </Button>
             </Grid>
+        </DataTemplate>
+
+        <!-- One named-network alias with the hosts defined inside it. -->
+        <DataTemplate DataType="vm:NamedNetworkViewModel">
+            <StackPanel Spacing="4" Margin="0,2">
+                <Grid ColumnDefinitions="200,Auto,Auto">
+                    <StackPanel Grid.Column="0" Margin="4,2" Spacing="2">
+                        <SelectableTextBlock Text="Name" FontSize="11" Opacity="0.75" />
+                        <TextBox Text="{Binding Name, Mode=TwoWay}"
+                                 PlaceholderText="e.g. China" />
+                    </StackPanel>
+                    <ContentControl Grid.Column="1" Content="{Binding Cidr}" />
+                    <Button Grid.Column="2" VerticalAlignment="Top" Margin="4,18,0,0"
+                            Command="{Binding RemoveSelfCommand}" ToolTip.Tip="Delete network">
+                        <PathIcon Data="{StaticResource TrashIcon}" Width="16" Height="16" />
+                    </Button>
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Hosts}" />
+                <Button Content="+ host" FontSize="12" Padding="10,2"
+                        Command="{Binding AddHostCommand}"
+                        HorizontalAlignment="Left" Margin="24,0,0,4"
+                        ToolTip.Tip="Add host" />
+            </StackPanel>
         </DataTemplate>
 
         <!-- One firewall rule. -->

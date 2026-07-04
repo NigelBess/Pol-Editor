@@ -66,6 +66,67 @@ public class KnownNetworksBlockTests
     }
 
     [Fact]
+    public void ToComments_renders_hosts_indented_under_their_network()
+    {
+        var expected = string.Join("\n",
+            "# Known Networks:",
+            "#     China: 10.0.30.0/24",
+            "#         WebServer: 10.0.30.5",
+            "#         10.0.30.6",
+            "#     DC: 10.0.40.0/24");
+
+        var actual = KnownNetworksBlock.ToComments(new[]
+        {
+            new NamedNetwork("China", "10.0.30.0/24")
+            {
+                Hosts = new[] { new NamedHost("WebServer", "10.0.30.5"), new NamedHost("", "10.0.30.6") },
+            },
+            new NamedNetwork("DC", "10.0.40.0/24"),
+        });
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void Extract_reads_named_and_unnamed_hosts_under_their_network()
+    {
+        var rawHeader = string.Join("\n",
+            "# Known Networks:",
+            "#     China: 10.0.30.0/24",
+            "#         WebServer: 10.0.30.5",
+            "#         10.0.30.6",
+            "#     DC: 10.0.40.0/24",
+            "# trailing note");
+
+        var networks = new List<NamedNetwork>();
+        var remaining = KnownNetworksBlock.Extract(rawHeader, networks);
+
+        Assert.Equal("# trailing note", remaining);
+        Assert.Equal(new[]
+        {
+            new NamedNetwork("China", "10.0.30.0/24")
+            {
+                Hosts = new[] { new NamedHost("WebServer", "10.0.30.5"), new NamedHost("", "10.0.30.6") },
+            },
+            new NamedNetwork("DC", "10.0.40.0/24"),
+        }, networks);
+    }
+
+    [Fact]
+    public void Round_trip_preserves_hosts()
+    {
+        var doc = new PolDocument { HeaderText = "Hello header" };
+        doc.KnownNetworks.Add(new NamedNetwork("China", "10.0.30.0/24")
+        {
+            Hosts = new[] { new NamedHost("WebServer", "10.0.30.5"), new NamedHost("", "10.0.30.6") },
+        });
+
+        var reparsed = PolParser.Parse(PolSerializer.Serialize(doc));
+
+        Assert.Equal(doc.KnownNetworks, reparsed.KnownNetworks);
+    }
+
+    [Fact]
     public void ToComments_is_empty_for_no_networks()
         => Assert.Equal("", KnownNetworksBlock.ToComments(Array.Empty<NamedNetwork>()));
 

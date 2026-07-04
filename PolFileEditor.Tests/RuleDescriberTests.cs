@@ -15,16 +15,16 @@ public class RuleDescriberTests
     [InlineData("Allow", "-", "-", "10.0.30.0/24", "10.0.40.0/24", "6", "-", "443", true,
         "Allow TCP traffic from China to DC on destination port 443.")]
     [InlineData("Allow", "-", "-", "10.0.30.1/32", "-", "6", "-", "-", true,
-        "Allow outgoing TCP traffic from China Host 1.")]
+        "Allow outgoing TCP traffic from 10.0.30.1.")]
     [InlineData("Block", "-", "-", "-", "10.0.30.5/32", "17", "-", "53", true,
-        "Block incoming UDP traffic to China Host 5 on destination port 53.")]
+        "Block incoming UDP traffic to 10.0.30.5 on destination port 53.")]
     [InlineData("Allow", "-", "-", "-", "10.0.30.128/25", "6", "-", "80", true,
         "Allow incoming TCP traffic to part of China (10.0.30.128/25) on destination port 80.")]
     [InlineData("Block", "-", "-", "10.0.99.0/24", "-", "-", "-", "-", true,
         "Block outgoing traffic from IP 10.0.99.0/24.")]
     // Port on one side but no MAC/IP -> "any IP address using ... port".
     [InlineData("Block", "-", "-", "10.0.30.1/32", "-", "17", "-", "53", true,
-        "Block UDP traffic from China Host 1 to any IP address using destination port 53.")]
+        "Block UDP traffic from 10.0.30.1 to any IP address using destination port 53.")]
     [InlineData("Allow", "-", "-", "-", "-", "-", "1024", "-", false,
         "Allow outgoing traffic from any IP address using source port 1024.")]
     // ---- No resolver (bare IP / MAC / port wording) ----

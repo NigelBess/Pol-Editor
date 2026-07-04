@@ -382,11 +382,17 @@ public partial class MainWindowViewModel : ObservableObject
             if (rule.HasRuleWarning) warnings++;
         }
 
-        // Known-network CIDRs use the same IP parsing rules, so count them too.
+        // Known-network CIDRs (and their hosts' IPs) use the same IP parsing rules, so count them too.
         foreach (var net in KnownNetworks)
         {
             if (net.Cidr.Severity == Severity.Error) errors++;
             else if (net.Cidr.Severity == Severity.Warning) warnings++;
+
+            foreach (var host in net.Hosts)
+            {
+                if (host.Ip.Severity == Severity.Error) errors++;
+                else if (host.Ip.Severity == Severity.Warning) warnings++;
+            }
         }
 
         ErrorCount = errors;

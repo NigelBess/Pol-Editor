@@ -30,6 +30,16 @@ public class KnownNetworkQuickPickTests
     }
 
     [Fact]
+    public void Applying_a_host_pick_fills_the_field_with_the_ip_as_a_32()
+    {
+        var rule = new RuleViewModel { KnownNetworks = new ObservableCollection<NamedNetwork>() };
+
+        rule.IpDest.ApplyHostPickCommand.Execute(new NamedHost("WebServer", "10.0.30.5"));
+
+        Assert.Equal("10.0.30.5/32", rule.IpDest.Value);
+    }
+
+    [Fact]
     public void Quick_picks_share_the_owner_list_so_edits_appear_live()
     {
         var networks = new ObservableCollection<NamedNetwork>();

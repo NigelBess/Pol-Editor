@@ -3,6 +3,7 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
+using PolFileEditor.Models;
 using PolFileEditor.Services;
 using PolFileEditor.ViewModels;
 
@@ -72,14 +73,31 @@ public partial class MainWindow : Window, IFileDialogService
         Close();
     }
 
-    /// <summary>Dismisses the "known networks" dropdown once a network has been picked (the
-    /// bound command has already filled the field). The flyout is otherwise light-dismiss only.</summary>
+    /// <summary>Fills the field with the picked known network (or one of its hosts) and dismisses
+    /// the dropdown. Done here (not via a bound command) because a Flyout's popup does not reliably
+    /// inherit the target's DataContext. The owning field is the DropDownButton's own DataContext —
+    /// the DropDownButton lives in the ValidatedField template (in the main tree, not the popup),
+    /// so that is reliable; the clicked value comes from the button's bound DataContext.</summary>
     private void OnQuickPickClicked(object? sender, RoutedEventArgs e)
     {
-        if (sender is Control c &&
-            c.FindLogicalAncestorOfType<DropDownButton>() is { Flyout: { } flyout })
+        if (sender is not Control row)
+            return;
+
+        var dropDown = row.FindLogicalAncestorOfType<DropDownButton>();
+        if (dropDown?.DataContext is ValidatedField field)
         {
-            flyout.Hide();
+            switch (row.DataContext)
+            {
+                case NamedNetwork net:
+                    field.ApplyQuickPickCommand.Execute(net);
+                    break;
+                case NamedHost host:
+                    field.ApplyHostPickCommand.Execute(host);
+                    break;
+            }
         }
+
+        // Best-effort dismiss; the flyout is light-dismiss even if this misses.
+        dropDown?.Flyout?.Hide();
     }
 }

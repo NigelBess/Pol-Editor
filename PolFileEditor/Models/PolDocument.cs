@@ -18,10 +18,32 @@ public sealed class PolRule
 }
 
 /// <summary>
-/// A user-defined alias mapping a friendly name to a network in CIDR notation
-/// (e.g. "China" -> "10.0.30.0/24"). Persisted in the file's "# Known Networks:" block.
+/// A single host inside a known network: an optional friendly name and a bare IPv4 address
+/// (no subnet — the host belongs to its network's subnet). Persisted indented under its
+/// network in the "# Known Networks:" block.
 /// </summary>
-public sealed record NamedNetwork(string Name, string Cidr);
+public sealed record NamedHost(string Name, string Ip);
+
+/// <summary>
+/// A user-defined alias mapping a friendly name to a network in CIDR notation
+/// (e.g. "China" -> "10.0.30.0/24"), optionally with named hosts inside it.
+/// Persisted in the file's "# Known Networks:" block.
+/// </summary>
+public sealed record NamedNetwork(string Name, string Cidr)
+{
+    /// <summary>Specific hosts defined inside this network.</summary>
+    public IReadOnlyList<NamedHost> Hosts { get; init; } = Array.Empty<NamedHost>();
+
+    // The default record equality compares Hosts by reference; make it element-wise so two
+    // networks with equal hosts (from different collection instances) compare equal.
+    public bool Equals(NamedNetwork? other)
+        => other is not null
+           && Name == other.Name
+           && Cidr == other.Cidr
+           && Hosts.SequenceEqual(other.Hosts);
+
+    public override int GetHashCode() => HashCode.Combine(Name, Cidr, Hosts.Count);
+}
 
 /// <summary>A group of rules, corresponding to a "# Task N" section in the .pol file.</summary>
 public sealed class PolTask

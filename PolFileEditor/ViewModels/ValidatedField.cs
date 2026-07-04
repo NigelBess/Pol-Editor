@@ -66,6 +66,18 @@ public sealed partial class ValidatedField : ObservableObject
     /// beyond the normal ones (used when loading a document).</summary>
     public void SetInitial(string value) => Value = value ?? "";
 
+    /// <summary>Re-runs the validator against the current (unchanged) value and refreshes the
+    /// displayed result. Used when validation depends on external state — e.g. a host IP whose
+    /// validity depends on its network's CIDR being edited elsewhere.</summary>
+    public void Revalidate()
+    {
+        _result = _validator(_value);
+        OnPropertyChanged(nameof(Severity));
+        OnPropertyChanged(nameof(Message));
+        OnPropertyChanged(nameof(HasMessage));
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     // ---- Known-network quick fill -------------------------------------------
     // Set (once, by the owner) on IP fields only; the view shows a "known networks"
     // dropdown that fills this field's value with a chosen network's CIDR. Left null
@@ -95,5 +107,13 @@ public sealed partial class ValidatedField : ObservableObject
     {
         if (net is not null)
             Value = net.Cidr;
+    }
+
+    /// <summary>Fills this field with a specific host's address as a /32 CIDR.</summary>
+    [RelayCommand]
+    private void ApplyHostPick(NamedHost? host)
+    {
+        if (host is not null)
+            Value = host.Ip + "/32";
     }
 }

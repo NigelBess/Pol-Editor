@@ -29,6 +29,9 @@ public static partial class Validators
     [GeneratedRegex(@"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})$")]
     private static partial Regex CidrRegex();
 
+    [GeneratedRegex(@"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$")]
+    private static partial Regex Ipv4Regex();
+
     /// <summary>True when the field is unused ("-" or blank).</summary>
     public static bool IsUnused(string? value)
         => string.IsNullOrWhiteSpace(value) || value.Trim() == "-";
@@ -91,6 +94,78 @@ public static partial class Validators
         }
 
         return ValidationResult.Valid;
+    }
+
+    /// <summary>
+    /// Validates a host's bare IPv4 address and, when the owning network's CIDR is known,
+    /// that the host actually falls inside that subnet. An empty host row is treated as
+    /// unused (valid); an empty/unparseable network CIDR skips the containment check.
+    /// </summary>
+    public static ValidationResult HostInNetwork(string? ip, string? networkCidr)
+    {
+        if (IsUnused(ip)) return ValidationResult.Valid;
+
+        var text = ip!.Trim();
+        var match = Ipv4Regex().Match(text);
+        if (!match.Success)
+        {
+            return new ValidationResult(Severity.Error,
+                "Host IP must be in the form a.b.c.d (e.g. 10.0.30.5), with no subnet.");
+        }
+
+        var octets = new int[4];
+        for (var i = 0; i < 4; i++)
+        {
+            octets[i] = int.Parse(match.Groups[i + 1].Value, CultureInfo.InvariantCulture);
+            if (octets[i] > 255)
+            {
+                return new ValidationResult(Severity.Error,
+                    $"IP octet '{octets[i]}' is out of range (each octet must be 0-255).");
+            }
+        }
+
+        // Without a valid network subnet there is nothing to check containment against.
+        if (!TryParseCidr(networkCidr, out var networkBase, out var mask))
+            return ValidationResult.Valid;
+
+        var address = (uint)((octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3]);
+        if ((address & mask) != networkBase)
+        {
+            return new ValidationResult(Severity.Error,
+                $"{text} is not inside this network's subnet {networkCidr!.Trim()}.");
+        }
+
+        return ValidationResult.Valid;
+    }
+
+    /// <summary>Parses a network CIDR into its base address and mask; false if unparseable.</summary>
+    private static bool TryParseCidr(string? cidr, out uint networkBase, out uint mask)
+    {
+        networkBase = 0;
+        mask = 0;
+        if (string.IsNullOrWhiteSpace(cidr))
+            return false;
+
+        var match = CidrRegex().Match(cidr.Trim());
+        if (!match.Success)
+            return false;
+
+        uint address = 0;
+        for (var i = 0; i < 4; i++)
+        {
+            var octet = int.Parse(match.Groups[i + 1].Value, CultureInfo.InvariantCulture);
+            if (octet > 255)
+                return false;
+            address = (address << 8) | (uint)octet;
+        }
+
+        var prefix = int.Parse(match.Groups[5].Value, CultureInfo.InvariantCulture);
+        if (prefix > 32)
+            return false;
+
+        mask = prefix == 0 ? 0u : uint.MaxValue << (32 - prefix);
+        networkBase = address & mask;
+        return true;
     }
 
     public static ValidationResult Protocol(string? value)

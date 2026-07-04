@@ -19,8 +19,9 @@ public sealed partial class NetworkNameResolver
     /// <summary>
     /// Returns the friendly name for <paramref name="cidr"/>, or null if it matches no
     /// alias (or is unparseable). Matching rules, in priority order:
-    /// exact network -> "China"; a /32 inside a network -> "China Host N" (N = offset from
-    /// the network base); a smaller block inside a network -> "part of China (a.b.c.d/nn)".
+    /// exact network -> "China"; a /32 inside a network -> the defined host's name
+    /// "China / WebServer" if one matches, otherwise the plain IP "10.0.30.5"; a smaller
+    /// block inside a network -> "part of China (a.b.c.d/nn)".
     /// </summary>
     public string? Resolve(string? cidr)
     {
@@ -43,7 +44,15 @@ public sealed partial class NetworkNameResolver
                 return net.Name;                                    // the whole network
 
             if (prefix == 32)
-                return $"{net.Name} Host {address - networkBase}";  // a single host
+            {
+                // Look up a defined host at this address; use its name if it has one,
+                // otherwise just show the address (no invented "Host N" numbering).
+                var host = net.Hosts.FirstOrDefault(
+                    h => TryParse($"{h.Ip}/32", out var hostAddr, out _) && hostAddr == address);
+                return host is { Name.Length: > 0 }
+                    ? $"{net.Name} / {host.Name}"
+                    : FormatIp(address);
+            }
 
             if (prefix > netPrefix)
                 return $"part of {net.Name} ({cidr!.Trim()})";      // a contained sub-range
@@ -51,6 +60,9 @@ public sealed partial class NetworkNameResolver
 
         return null;
     }
+
+    private static string FormatIp(uint address)
+        => $"{(address >> 24) & 0xFF}.{(address >> 16) & 0xFF}.{(address >> 8) & 0xFF}.{address & 0xFF}";
 
     private static bool TryParse(string? cidr, out uint address, out int prefix)
     {
