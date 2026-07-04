@@ -111,14 +111,6 @@
             </MenuItem>
         </Menu>
 
-        <Border DockPanel.Dock="Top" Padding="12,8"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                BorderThickness="0,0,0,1">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Content="Add Task" Command="{Binding AddTaskCommand}" />
-            </StackPanel>
-        </Border>
-
         <Border DockPanel.Dock="Bottom" Padding="12,6"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 BorderThickness="0,1,0,0">
@@ -140,6 +132,8 @@
                              MinHeight="140" />
                 </Expander>
                 <ItemsControl ItemsSource="{Binding Tasks}" />
+                <Button Content="+ Add Task" Command="{Binding AddTaskCommand}"
+                        HorizontalAlignment="Left" Margin="0,4,0,0" />
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

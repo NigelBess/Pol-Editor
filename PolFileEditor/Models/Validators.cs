@@ -84,10 +84,10 @@ public static partial class Validators
                 $"'{text}' is not a valid network address for /{prefix}: host bits must be zero. Did you mean {suggestion}?");
         }
 
-        if (prefix < 28)
+        if (prefix < 24)
         {
             return new ValidationResult(Severity.Warning,
-                $"Subnet /{prefix} is broader than /28 and covers {(1L << (32 - prefix))} addresses. Verify this is intended.");
+                $"Subnet /{prefix} is broader than /24 and covers {(1L << (32 - prefix))} addresses. Verify this is intended.");
         }
 
         return ValidationResult.Valid;
