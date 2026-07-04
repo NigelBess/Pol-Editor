@@ -115,6 +115,39 @@ public partial class RuleViewModel : ObservableObject
     /// (i.e. the known-networks list).</summary>
     public void RefreshSummary() => OnPropertyChanged(nameof(Summary));
 
+    // ---- Collision annotations ---------------------------------------------
+    // Set by the owner (which alone can see the other rules); a rule may both override
+    // some rules and be overridden by others, so each side is a list.
+
+    private IReadOnlyList<RuleReference> _overrides = Array.Empty<RuleReference>();
+    private IReadOnlyList<RuleReference> _overriddenBy = Array.Empty<RuleReference>();
+
+    /// <summary>Records this rule's collisions and refreshes the override banners. Called by
+    /// <c>MainWindowViewModel</c> whenever rules change; pass empty lists to clear.</summary>
+    public void SetCollisions(IReadOnlyList<RuleReference> overrides, IReadOnlyList<RuleReference> overriddenBy)
+    {
+        _overrides = overrides;
+        _overriddenBy = overriddenBy;
+        OnPropertyChanged(nameof(HasOverrides));
+        OnPropertyChanged(nameof(OverridesText));
+        OnPropertyChanged(nameof(HasOverridden));
+        OnPropertyChanged(nameof(OverriddenText));
+    }
+
+    /// <summary>True when this rule wins a collision against a lower-priority rule.</summary>
+    public bool HasOverrides => _overrides.Count > 0;
+
+    /// <summary>One "Overrides N.M: summary (reason)" line per rule this one takes precedence over.</summary>
+    public string OverridesText =>
+        string.Join("\n", _overrides.Select(r => $"Overrides {r.RuleNumber}: {r.Summary} {r.Reason}"));
+
+    /// <summary>True when a higher-priority rule overrides this one.</summary>
+    public bool HasOverridden => _overriddenBy.Count > 0;
+
+    /// <summary>One "Overridden by N.M: summary (reason)" line per rule that takes precedence over this one.</summary>
+    public string OverriddenText =>
+        string.Join("\n", _overriddenBy.Select(r => $"Overridden by {r.RuleNumber}: {r.Summary} {r.Reason}"));
+
     public PolRule ToModel() => new()
     {
         Action = Action,

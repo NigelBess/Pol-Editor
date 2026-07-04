@@ -6,8 +6,8 @@
         ShowInTaskbar="False"
         Title="Pol File Editor">
     <StackPanel Margin="24" Spacing="16">
-        <TextBlock x:Name="TitleText" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" />
-        <TextBlock x:Name="MessageText" TextWrapping="Wrap" />
+        <SelectableTextBlock x:Name="TitleText" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" />
+        <SelectableTextBlock x:Name="MessageText" TextWrapping="Wrap" />
         <StackPanel x:Name="ButtonsPanel" Orientation="Horizontal"
                     HorizontalAlignment="Right" Spacing="8" />
     </StackPanel>

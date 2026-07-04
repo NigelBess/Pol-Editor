@@ -127,6 +127,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         RefreshNetworks();
         RecomputeCounts();
+        RecomputeCollisions(); // summaries shown in override banners depend on network names
         MarkDirty();
     }
 
@@ -137,6 +138,7 @@ public partial class MainWindowViewModel : ObservableObject
         KnownNetworks.Remove(net);
         RefreshNetworks();
         RecomputeCounts();
+        RecomputeCollisions();
         MarkDirty();
     }
 
@@ -279,6 +281,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         RefreshNetworks();
         Renumber();
+        RecomputeCollisions();
     }
 
     private PolDocument BuildModel()
@@ -329,12 +332,14 @@ public partial class MainWindowViewModel : ObservableObject
     {
         Renumber();
         RecomputeCounts();
+        RecomputeCollisions();
         MarkDirty();
     }
 
     private void OnTaskContentChanged(object? sender, EventArgs e)
     {
         RecomputeCounts();
+        RecomputeCollisions();
         MarkDirty();
     }
 
@@ -374,6 +379,49 @@ public partial class MainWindowViewModel : ObservableObject
 
         ErrorCount = errors;
         WarningCount = warnings;
+    }
+
+    /// <summary>
+    /// Recomputes rule collisions and pushes the resulting "overrides" / "overridden by"
+    /// annotations onto each rule. Rules from every task are compared against each other —
+    /// collisions are document-wide, so a rule in one task can override a rule in another.
+    /// </summary>
+    private void RecomputeCollisions()
+    {
+        var overrides = new Dictionary<RuleViewModel, List<RuleReference>>();
+        var overriddenBy = new Dictionary<RuleViewModel, List<RuleReference>>();
+
+        var rules = Tasks
+            .SelectMany(t => t.Rules)
+            .Select(r => (Handle: r, Rule: r.ToModel()))
+            .ToList();
+
+        foreach (var collision in RuleCollisionDetector.Detect(rules))
+        {
+            var winner = collision.Winner;
+            var loser = collision.Loser;
+            var reason = collision.Reason == CollisionReason.AllowTrumpsBlock
+                ? "(Allow trumps Block)"
+                : $"(Specificity {collision.WinnerSpecificity})";
+
+            // Each banner shows the OTHER rule's number and summary.
+            Add(overrides, winner, new RuleReference(loser.RuleNumber, loser.Summary, reason));
+            Add(overriddenBy, loser, new RuleReference(winner.RuleNumber, winner.Summary, reason));
+        }
+
+        foreach (var rule in rules)
+        {
+            rule.Handle.SetCollisions(
+                overrides.TryGetValue(rule.Handle, out var o) ? o : (IReadOnlyList<RuleReference>)Array.Empty<RuleReference>(),
+                overriddenBy.TryGetValue(rule.Handle, out var b) ? b : Array.Empty<RuleReference>());
+        }
+
+        static void Add(Dictionary<RuleViewModel, List<RuleReference>> map, RuleViewModel key, RuleReference value)
+        {
+            if (!map.TryGetValue(key, out var list))
+                map[key] = list = new List<RuleReference>();
+            list.Add(value);
+        }
     }
 
     private void MarkDirty() => IsDirty = true;

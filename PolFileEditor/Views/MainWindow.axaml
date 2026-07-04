@@ -20,13 +20,13 @@
         <!-- A single validated field: label, colored input, and explanation. -->
         <DataTemplate DataType="vm:ValidatedField">
             <StackPanel Width="150" Margin="4,2" Spacing="2">
-                <TextBlock Text="{Binding Label}" FontSize="11" Opacity="0.75" />
+                <SelectableTextBlock Text="{Binding Label}" FontSize="11" Opacity="0.75" />
                 <Border BorderBrush="{Binding Severity, Converter={StaticResource SeverityToBrush}}"
                         BorderThickness="2" CornerRadius="5">
                     <TextBox Text="{Binding Value, Mode=TwoWay}"
                              ToolTip.Tip="{Binding Message}" />
                 </Border>
-                <TextBlock Text="{Binding Message}"
+                <SelectableTextBlock Text="{Binding Message}"
                            IsVisible="{Binding HasMessage}"
                            Foreground="{Binding Severity, Converter={StaticResource SeverityToBrush}}"
                            TextWrapping="Wrap" FontSize="11" MaxWidth="150" />
@@ -37,7 +37,7 @@
         <DataTemplate DataType="vm:NamedNetworkViewModel">
             <Grid ColumnDefinitions="200,Auto,Auto" Margin="0,2">
                 <StackPanel Grid.Column="0" Margin="4,2" Spacing="2">
-                    <TextBlock Text="Name" FontSize="11" Opacity="0.75" />
+                    <SelectableTextBlock Text="Name" FontSize="11" Opacity="0.75" />
                     <TextBox Text="{Binding Name, Mode=TwoWay}"
                              PlaceholderText="e.g. China" />
                 </StackPanel>
@@ -65,23 +65,18 @@
                         </MultiBinding>
                     </Border.Background>
                 <StackPanel Spacing="6">
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
-                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0"
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0"
                                    FontWeight="Bold"
                                    Text="{Binding RuleNumber, StringFormat='{}{0}:'}" />
                         <TextBox Grid.Column="1" VerticalAlignment="Center"
                                  Text="{Binding Comment, Mode=TwoWay}"
                                  PlaceholderText="Comment / note" />
-                        <Border Grid.Column="2" VerticalAlignment="Center" Margin="8,0"
-                                Background="#20808080" CornerRadius="10" Padding="8,2"
-                                ToolTip.Tip="Specificity: number of match fields this rule constrains. More specific rules have higher implicit priority; Allow overrides Block.">
-                            <TextBlock Text="{Binding SpecificityText}" FontSize="11" FontWeight="SemiBold" />
-                        </Border>
-                        <Button Grid.Column="3" Margin="0,0,4,0" Command="{Binding DuplicateSelfCommand}"
+                        <Button Grid.Column="2" Margin="0,0,4,0" Command="{Binding DuplicateSelfCommand}"
                                 ToolTip.Tip="Duplicate rule">
                             <PathIcon Data="{StaticResource CopyIcon}" Width="16" Height="16" />
                         </Button>
-                        <Button Grid.Column="4" Command="{Binding RemoveSelfCommand}"
+                        <Button Grid.Column="3" Command="{Binding RemoveSelfCommand}"
                                 ToolTip.Tip="Delete rule">
                             <PathIcon Data="{StaticResource TrashIcon}" Width="16" Height="16" />
                         </Button>
@@ -89,7 +84,7 @@
 
                     <WrapPanel Orientation="Horizontal">
                         <StackPanel Width="150" Margin="4,2" Spacing="2">
-                            <TextBlock Text="Action" FontSize="11" Opacity="0.75" />
+                            <SelectableTextBlock Text="Action" FontSize="11" Opacity="0.75" />
                             <ComboBox HorizontalAlignment="Stretch"
                                       ItemsSource="{Binding ActionOptions}"
                                       SelectedItem="{Binding Action, Mode=TwoWay}" />
@@ -99,20 +94,41 @@
                         <ContentControl Content="{Binding IpSource}" />
                         <ContentControl Content="{Binding IpDest}" />
                         <StackPanel Width="150" Margin="4,2" Spacing="2">
-                            <TextBlock Text="IP Protocol" FontSize="11" Opacity="0.75" />
+                            <SelectableTextBlock Text="IP Protocol" FontSize="11" Opacity="0.75" />
                             <controls:ProtocolPicker SelectedProtocol="{Binding SelectedProtocol, Mode=TwoWay}" />
                         </StackPanel>
                         <ContentControl Content="{Binding PortSource}" />
                         <ContentControl Content="{Binding PortDest}" />
                     </WrapPanel>
 
-                    <TextBlock Text="{Binding Summary}"
+                    <SelectableTextBlock Text="{Binding Summary}"
                                FontStyle="Italic" Opacity="0.75"
                                TextWrapping="Wrap" FontSize="12" Margin="4,0" />
 
+                    <Border HorizontalAlignment="Left" Margin="4,0"
+                            Background="#20808080" CornerRadius="10" Padding="8,2"
+                            ToolTip.Tip="Specificity: number of match fields this rule constrains. More specific rules have higher implicit priority; Allow overrides Block.">
+                        <SelectableTextBlock Text="{Binding SpecificityText}" FontSize="11" FontWeight="SemiBold" />
+                    </Border>
+
+                    <!-- Collision annotations: this rule wins (green) / is overridden (red). -->
+                    <Border IsVisible="{Binding HasOverrides}"
+                            Background="#2246A758" CornerRadius="4" Padding="8,4">
+                        <SelectableTextBlock Text="{Binding OverridesText}"
+                                   Foreground="#46A758" FontWeight="SemiBold"
+                                   TextWrapping="Wrap" FontSize="12" />
+                    </Border>
+
+                    <Border IsVisible="{Binding HasOverridden}"
+                            Background="#22E5484D" CornerRadius="4" Padding="8,4">
+                        <SelectableTextBlock Text="{Binding OverriddenText}"
+                                   Foreground="#E5484D" FontWeight="SemiBold"
+                                   TextWrapping="Wrap" FontSize="12" />
+                    </Border>
+
                     <Border IsVisible="{Binding HasRuleWarning}"
                             Background="#22B88600" CornerRadius="4" Padding="8,4">
-                        <TextBlock Text="{Binding RuleWarning}"
+                        <SelectableTextBlock Text="{Binding RuleWarning}"
                                    Foreground="{Binding WorstSeverity, Converter={StaticResource SeverityToBrush}}"
                                    TextWrapping="Wrap" FontSize="12" />
                     </Border>
@@ -128,7 +144,7 @@
                     BorderThickness="2" CornerRadius="8" Margin="0,6" Padding="12">
                 <StackPanel Spacing="8">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center"
                                    FontWeight="Bold" FontSize="16"
                                    Foreground="{Binding Number, Converter={StaticResource TaskColor}}"
                                    Text="{Binding Title}" />
@@ -164,11 +180,11 @@
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 BorderThickness="0,1,0,0">
             <Grid ColumnDefinitions="*,Auto,Auto">
-                <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center"
                            Text="{Binding StatusMessage}" Opacity="0.8" />
-                <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0"
+                <SelectableTextBlock Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0"
                            Text="{Binding ErrorCount, StringFormat='Errors: {0}'}" />
-                <TextBlock Grid.Column="2" VerticalAlignment="Center"
+                <SelectableTextBlock Grid.Column="2" VerticalAlignment="Center"
                            Text="{Binding WarningCount, StringFormat='Warnings: {0}'}" />
             </Grid>
         </Border>

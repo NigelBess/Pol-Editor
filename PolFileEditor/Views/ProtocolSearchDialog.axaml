@@ -8,7 +8,7 @@
         ShowInTaskbar="False"
         Title="Choose IP Protocol">
     <DockPanel Margin="16">
-        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8"
+        <SelectableTextBlock DockPanel.Dock="Top" Margin="0,0,0,8"
                    Text="Search by name or number (e.g. TCP, ospf, 47):" />
         <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Margin="0,0,0,10"
                  PlaceholderText="Type to filter…" />
