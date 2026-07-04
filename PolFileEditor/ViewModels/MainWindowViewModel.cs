@@ -351,7 +351,7 @@ public partial class MainWindowViewModel : ObservableObject
             var task = Tasks[t];
             task.Number = t + 1;
             for (var r = 0; r < task.Rules.Count; r++)
-                task.Rules[r].RuleNumber = $"{t + 1}.{r}";
+                task.Rules[r].RuleNumber = $"{t + 1}.{r + 1}";
         }
     }
 
