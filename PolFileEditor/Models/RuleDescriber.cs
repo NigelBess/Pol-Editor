@@ -27,11 +27,15 @@ public static class RuleDescriber
         if (from is null && to is null)
             return sb.Append("all ").Append(protocolPrefix).Append("traffic.").ToString();
 
-        sb.Append(protocolPrefix).Append("traffic");
+        // Traffic always leaves its source (outgoing) and arrives at its destination
+        // (incoming), so those labels hold regardless of any "local" reference point.
+        var clauses = new List<string>(2);
         if (from is not null)
-            sb.Append(" from ").Append(from);
+            clauses.Add($"outgoing {protocolPrefix}traffic from {from}");
         if (to is not null)
-            sb.Append(" to ").Append(to);
+            clauses.Add($"incoming {protocolPrefix}traffic to {to}");
+
+        sb.Append(string.Join(" and ", clauses));
         return sb.Append('.').ToString();
     }
 

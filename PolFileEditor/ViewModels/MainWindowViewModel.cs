@@ -126,6 +126,7 @@ public partial class MainWindowViewModel : ObservableObject
     private void OnNetworkChanged(object? sender, EventArgs e)
     {
         RefreshNetworks();
+        RecomputeCounts();
         MarkDirty();
     }
 
@@ -135,6 +136,7 @@ public partial class MainWindowViewModel : ObservableObject
         DetachNetwork(net);
         KnownNetworks.Remove(net);
         RefreshNetworks();
+        RecomputeCounts();
         MarkDirty();
     }
 
@@ -361,6 +363,13 @@ public partial class MainWindowViewModel : ObservableObject
                 else if (field.Severity == Severity.Warning) warnings++;
             }
             if (rule.HasRuleWarning) warnings++;
+        }
+
+        // Known-network CIDRs use the same IP parsing rules, so count them too.
+        foreach (var net in KnownNetworks)
+        {
+            if (net.Cidr.Severity == Severity.Error) errors++;
+            else if (net.Cidr.Severity == Severity.Warning) warnings++;
         }
 
         ErrorCount = errors;
