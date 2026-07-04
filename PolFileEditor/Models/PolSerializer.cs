@@ -39,7 +39,7 @@ public static class PolSerializer
             var rules = doc.Tasks[t].Rules;
             for (var r = 0; r < rules.Count; r++)
             {
-                sb.Append(SerializeRule($"{taskNumber}.{r}", rules[r])).Append('\n');
+                sb.Append(SerializeRule($"{taskNumber}.{r + 1}", rules[r])).Append('\n');
             }
         }
 

@@ -13,7 +13,7 @@ public class RuleDescriberTests
     [InlineData("Allow", "-", "-", "-", "-", "-", "-", "-", true, "Allow all traffic.")]
     [InlineData("Block", "-", "-", "-", "-", "1", "-", "-", true, "Block all ICMP traffic.")]
     [InlineData("Allow", "-", "-", "10.0.30.0/24", "10.0.40.0/24", "6", "-", "443", true,
-        "Allow outgoing TCP traffic from China and incoming TCP traffic to DC on destination port 443.")]
+        "Allow TCP traffic from China to DC on destination port 443.")]
     [InlineData("Allow", "-", "-", "10.0.30.1/32", "-", "6", "-", "-", true,
         "Allow outgoing TCP traffic from China Host 1.")]
     [InlineData("Block", "-", "-", "-", "10.0.30.5/32", "17", "-", "53", true,
@@ -24,7 +24,7 @@ public class RuleDescriberTests
         "Block outgoing traffic from IP 10.0.99.0/24.")]
     // Port on one side but no MAC/IP -> "any IP address using ... port".
     [InlineData("Block", "-", "-", "10.0.30.1/32", "-", "17", "-", "53", true,
-        "Block outgoing UDP traffic from China Host 1 and incoming UDP traffic to any IP address using destination port 53.")]
+        "Block UDP traffic from China Host 1 to any IP address using destination port 53.")]
     [InlineData("Allow", "-", "-", "-", "-", "-", "1024", "-", false,
         "Allow outgoing traffic from any IP address using source port 1024.")]
     // ---- No resolver (bare IP / MAC / port wording) ----
@@ -33,11 +33,11 @@ public class RuleDescriberTests
     [InlineData("Block", "-", "-", "10.0.1.0/24", "-", "17", "53", "-", false,
         "Block outgoing UDP traffic from IP 10.0.1.0/24 on source port 53.")]
     [InlineData("Allow", "-", "-", "10.0.1.0/24", "10.0.2.0/24", "6", "1024", "443", false,
-        "Allow outgoing TCP traffic from IP 10.0.1.0/24 on source port 1024 and incoming TCP traffic to IP 10.0.2.0/24 on destination port 443.")]
+        "Allow TCP traffic from IP 10.0.1.0/24 on source port 1024 to IP 10.0.2.0/24 on destination port 443.")]
     [InlineData("Allow", "aa:bb:cc:dd:ee:ff", "-", "-", "-", "-", "-", "-", false,
         "Allow outgoing traffic from MAC aa:bb:cc:dd:ee:ff.")]
     [InlineData("Block", "-", "11:22:33:44:55:66", "10.0.1.0/24", "-", "-", "-", "-", false,
-        "Block outgoing traffic from IP 10.0.1.0/24 and incoming traffic to MAC 11:22:33:44:55:66.")]
+        "Block traffic from IP 10.0.1.0/24 to MAC 11:22:33:44:55:66.")]
     public void Describe_produces_expected_sentence(
         string action, string macSrc, string macDst, string ipSrc, string ipDst,
         string proto, string portSrc, string portDst, bool useResolver, string expected)
