@@ -10,6 +10,7 @@ namespace PolFileEditor.ViewModels;
 public partial class MainWindowViewModel : ObservableObject
 {
     private readonly IFileDialogService _dialogs;
+    private readonly AppSettings _settings;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
@@ -48,8 +49,34 @@ public partial class MainWindowViewModel : ObservableObject
     public MainWindowViewModel(IFileDialogService dialogs)
     {
         _dialogs = dialogs;
-        NewDocument(seedHeader: true);
+        _settings = AppSettings.Load();
+
+        if (!TryReopenLastFile())
+            NewDocument(seedHeader: true);
+
         IsDirty = false;
+    }
+
+    /// <summary>Reopens the file remembered from the previous session, if it still loads.</summary>
+    private bool TryReopenLastFile()
+    {
+        var path = _settings.LastFilePath;
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return false;
+
+        try
+        {
+            LoadDocument(PolParser.Parse(File.ReadAllText(path)));
+            CurrentPath = path;
+            RecomputeCounts();
+            StatusMessage = $"Reopened {Path.GetFileName(path)} ({Tasks.Count} task(s)).";
+            return true;
+        }
+        catch
+        {
+            // A missing/corrupt remembered file should never block startup.
+            return false;
+        }
     }
 
     // ---- Structure commands -------------------------------------------------
@@ -269,4 +296,14 @@ public partial class MainWindowViewModel : ObservableObject
     private void MarkDirty() => IsDirty = true;
 
     partial void OnHeaderTextChanged(string value) => MarkDirty();
+
+    partial void OnCurrentPathChanged(string? value)
+    {
+        // Remember the last real file so it reopens on next startup.
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            _settings.LastFilePath = value;
+            _settings.Save();
+        }
+    }
 }

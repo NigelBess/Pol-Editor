@@ -24,8 +24,6 @@ public partial class ProtocolSearchDialog : Window
         ResultsList.DoubleTapped += OnResultsDoubleTapped;
     }
 
-    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
-
     public static Task<ProtocolOption?> ShowAsync(Window owner)
     {
         var dialog = new ProtocolSearchDialog();

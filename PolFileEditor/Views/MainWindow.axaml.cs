@@ -20,8 +20,6 @@ public partial class MainWindow : Window, IFileDialogService
         Closing += OnClosing;
     }
 
-    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
-
     private async void OnClosing(object? sender, WindowClosingEventArgs e)
     {
         if (_forceClose || DataContext is not MainWindowViewModel vm)

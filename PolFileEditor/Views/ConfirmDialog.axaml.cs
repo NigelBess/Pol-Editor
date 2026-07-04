@@ -11,8 +11,6 @@ public partial class ConfirmDialog : Window
         InitializeComponent();
     }
 
-    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
-
     public static Task<SavePrompt> ShowUnsavedAsync(Window owner)
     {
         var dlg = new ConfirmDialog();

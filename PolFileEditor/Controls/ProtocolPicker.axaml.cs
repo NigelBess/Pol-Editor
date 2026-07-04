@@ -30,8 +30,6 @@ public partial class ProtocolPicker : UserControl
         RebuildItems();
     }
 
-    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
-
     public ProtocolOption? SelectedProtocol
     {
         get => GetValue(SelectedProtocolProperty);
